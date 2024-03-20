@@ -1,0 +1,19 @@
+{
+  "$id": "ros-messages",
+  "$schema": "message-schemas",
+  "title": "{{msg.name}}",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "object",
+      "properties": {
+        {% for field in msg.fields %}
+        "{{ field.name }}": {
+          "type": "{{ field.datatype}}",
+          "description": "{{ field.description }}"
+        },
+        {% endfor %}
+      }
+    }
+  }
+}
