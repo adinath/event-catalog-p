@@ -1,4 +1,6 @@
 event-catalog
+core_interfaces
+pbsa*
 .idea
 *.iml
 

@@ -1,4 +1,6 @@
 import os
+import re
+import csv
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -50,6 +52,43 @@ def scan_msg_files(path: str, target_path: str):
         else:  # assume it's a directory
             scan_msg_files(path=entry.path, target_path="event-catalog")
 
+def split_string(input_string):
+    # Find the index of the capital letter
+    capital_indices = [i for i, c in enumerate(input_string) if c.isupper()]
+    if len(capital_indices) < 2:
+        return [input_string]
+    
+    result = input_string[:capital_indices[1]].lower()+"_msgs"
+
+    return result
+
+def scan_task_files(path: str):
+    files = os.scandir(path)
+    channels = []
+    for entry in files:
+        if entry.is_file():
+            if entry.name.endswith(".rb"):
+                print("found task file. loading", entry.name)
+                f = open(entry.path)
+                lines = f.read()
+                matches = re.findall(r'Interfaces\.update\s*\(\s*\{\s*([\s\S]+?)\s*\}\s*\)', lines)
+                for match in matches:
+                    channels.extend(re.findall(r'(?:InterfaceDefs::)(\w+)(?=(?:Input|Output)\b)', match))
+
+    interfaces = set()
+    with open(os.path.join("core_interfaces", "app_config", "channel_names.csv"), mode ='r') as file:    
+       csv_file = csv.DictReader(file)
+       for data in csv_file:
+            if data["Channel"] in channels:
+                interfaces.add(data["Type"])
+
+    msg_files_path = []
+    for interface in interfaces:
+        folder_name = split_string(interface)
+        msg_files_path.append(os.path.join("core_interfaces", "core_interfaces", folder_name, "msg"))
+    
+    for msg_files in msg_files_path:
+        scan_msg_files(msg_files, "pbsa_msgs")
 
 if __name__ == "__main__":
-    scan_msg_files("industrial_core","event-catalog")
+    scan_task_files("pbsa")
